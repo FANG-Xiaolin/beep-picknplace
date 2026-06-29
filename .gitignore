@@ -8,7 +8,6 @@ config.yml
 *.pth
 *.pkl
 *.npz
-*.txt
 
 *.log-????????
 .vim*

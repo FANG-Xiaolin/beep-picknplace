@@ -81,6 +81,21 @@ class TracIKSolver(IKSolver):
 
     def ik(self, goal: Mat4, qinit: JointConf) -> Optional[JointConf]:
         return self.solver.ik(goal, qinit=qinit)
+
+
+class SSIKSolver(IKSolver):
+    def __init__(self, urdf_path: str, tool_link_name: str):
+        super().__init__(urdf_path, tool_link_name)
+        import ssik
+        self.ssik_solver = ssik.Manipulator.from_urdf(urdf_path, base="panda_link0", ee=tool_link_name)
+
+    def ik(self, goal: Mat4, qinit: JointConf) -> Optional[JointConf]:
+        all_solutions = self.ssik_solver.solve(goal, q_seed=qinit)
+        if not all_solutions:
+            return None
+        return sorted(all_solutions, key=lambda x: x.fk_residual)[0].q
+
+
 ############################################################################################
 
 ######################################  Motion Planner #####################################
@@ -228,7 +243,9 @@ class Planner:
     def __init__(self, config):
         # Initialize the motion planner
         self.grasp_sampler = TopDownGraspSampler()
-        self.iksolver = TracIKSolver(config.iksolver_config.urdf_path, config.iksolver_config.tool_link_name)
+        # Note: deprecating legacy TracIKSolver
+        # self.iksolver = TracIKSolver(config.iksolver_config.urdf_path, config.iksolver_config.tool_link_name)
+        self.iksolver = SSIKSolver(config.iksolver_config.urdf_path, config.iksolver_config.tool_link_name)
         self.motion_planner = InterpolationMotionPlanner(config)
 
     def plan_arm_path(self, start_conf: JointConf, goal_conf: Mat4) -> list[JointConf]:
