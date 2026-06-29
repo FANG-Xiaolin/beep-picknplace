@@ -15,7 +15,7 @@ from functools import cached_property
 import numpy as np
 from uncos import UncOS
 
-from beepp.gpt_client import GPTClient
+from beepp.gemini_client import GeminiClient
 from beepp.utils.common_utils import crop_image
 
 
@@ -82,19 +82,29 @@ class RGBDObservation:
 class PerceptionInterface:
     def __init__(self):
         self.uncos = UncOS()
-        self.gpt_client = GPTClient()
+        self.gemini_client = GeminiClient()
 
-    def get_object_mask(self, rgbd_observation: RGBDObservation, object_name):
+    def get_object_mask(self, rgbd_observation: RGBDObservation, object_name, vis=False):
         fast_query_masks = self.uncos.grounded_sam_wrapper.process_image(rgbd_observation.rgb_im, text_prompt=object_name)
         if len(fast_query_masks) == 1:
             mask = fast_query_masks[0]()
             return mask
         pred_masks_boolarray, _ = self.uncos.segment_scene(rgbd_observation.rgb_im, rgbd_observation.pcd_worldframe, return_most_likely_only=True, pointcloud_frame='world')
-        most_likely_mask_id = self.select_object([crop_image(rgbd_observation.rgb_im, mask) for mask in pred_masks_boolarray], object_name, allow_none=False)
+        most_likely_mask_id = self.select_object(
+            [crop_image(rgbd_observation.rgb_im, mask) for mask in pred_masks_boolarray],
+            object_name,
+            allow_none=False,
+            vis=vis
+        )
         return pred_masks_boolarray[most_likely_mask_id]
 
-    def select_object(self, im_patches, object_name, allow_none=True):
-        selected_object_id = self.gpt_client.obtain_GPT_mostlikelyobject_auto(im_patches, object_name, allow_none=allow_none)
+    def select_object(self, im_patches, object_name, allow_none=True, vis=False):
+        selected_object_id = self.gemini_client.obtain_mostlikelyobject_auto(
+            im_patches,
+            object_name,
+            allow_none=allow_none,
+            vis=vis
+        )
         return selected_object_id
 
 
