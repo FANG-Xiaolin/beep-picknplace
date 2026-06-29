@@ -32,7 +32,10 @@ class ExecutionManager:
             current_ee_pose = self.robot_client.get_current_joint_states()['ee_pose']
             nstep = max(np.abs(command.args[0][:3, 3] - current_ee_pose[:3, 3]) / self.config.cartesian_impedance_max_dist_perstep)
             self.robot_client.execute_cartesian_impedance_path(
-                [current_ee_pose, command.args[0]], speed_factor=int(nstep), is_capturing=is_capturing, capture_step=2
+                [current_ee_pose, command.args[0]],
+                speed_factor=int(nstep),
+                is_capturing=is_capturing,
+                capture_step=2
             )
         elif isinstance(command, GripperMotionCommand):
             if command.args[0] == 'open':

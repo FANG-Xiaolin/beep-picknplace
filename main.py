@@ -10,8 +10,10 @@
 """
 
 """
+import os
 import time
 import tap
+import numpy as np
 from beepp.robot_client_interface import initialize_robot_interface
 from beepp.execution_manager import initialize_execution_manager
 from beepp.perception import initialize_perception_interface, RGBDObservation
@@ -34,25 +36,29 @@ def main_pick_place_planned_franka():
             extrinsic = robot_interface.get_gripper_camera_extrinsics()
             rgbd_observation = RGBDObservation(rgb_im, dep_im, intrinsics, extrinsic)
 
-            target_object_mask = perception_interface.get_object_mask(rgbd_observation, config.object_name)
-            if config.vis:
-                show_image_with_mask(rgbd_observation.rgb_im, target_object_mask)
+            # skip perception call if loading from cache:
+            if config.use_cache_mask and os.path.exists(config.cache_mask_path):
+                print(f'Loading cached mask from {config.cache_mask_path}')
+                target_object_mask = np.load(config.cache_mask_path)['mask']
+            else:
+                target_object_mask = perception_interface.get_object_mask(rgbd_observation, config.object_name,
+                                                                          vis=config.vis)
+                if config.vis:
+                    show_image_with_mask(rgbd_observation.rgb_im, target_object_mask)
 
-            is_success = False
             for _ in range(config.num_trial):
                 current_qpos = robot_interface.get_current_joint_confs()
                 picking_command_sequence = planning_interface.plan_picking(current_qpos, rgbd_observation.pcd_cameraframe, rgbd_observation.pcd_worldframe, rgbd_observation.rgb_im, target_object_mask)
                 print('Executing picking command sequence...')
-                is_success = execution_manager.execute_commands(
+                if execution_manager.execute_commands(
                     picking_command_sequence, is_capturing=config.is_capturing,
                     capture_save_name=f'{config.save_dir}/pick_{config.object_name}_{time.strftime("%Y%m%d-%H%M%S")}.pkl',
-                    success_checker_hook=lambda: robot_interface.get_gripper_state() > 0.01
-                )
-                print('Finish picking command sequence.')
-                if is_success:
+                    success_checker_hook=None if config.run_in_simulation else lambda: robot_interface.get_gripper_state() > 0.01,
+                ):
+                    print('Finish picking command sequence.')
                     break
-
-            if not is_success:
+                print('Finish picking command sequence.')
+            else:
                 print('Grasp failed.')
                 robot_interface.go_to_home(gripper_open=True)
                 continue
@@ -69,7 +75,9 @@ def main_pick_place_planned_franka():
             print('Finish placing command sequence.')
 
             robot_interface.go_to_home(gripper_open=True)
-        except:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             pass
 
 
@@ -78,7 +86,7 @@ class BeeppConfig(tap.Tap):
     run_in_simulation: bool = False
 
     num_runs: int = 10
-    num_trial: int = 4 # number of trials for each run
+    num_trial: int = 4  # number of trials for each run
 
     # Data collection Settings
     is_capturing: bool = True
@@ -86,6 +94,9 @@ class BeeppConfig(tap.Tap):
     object_name: str = 'apple'
     place_xrange: list[float] = [0.45, 0.7]
     place_yrange: list[float] = [-0.6, -0.1]
+
+    use_cache_mask: bool = False   # reload mask from file, skip API call
+    cache_mask_path: str = 'cache/target_mask.npz'
 
 
 if __name__ == '__main__':

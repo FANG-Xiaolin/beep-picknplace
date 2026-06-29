@@ -97,7 +97,7 @@ class InterpolationMotionPlanner(MotionPlanner):
     def __init__(self, config):
         super().__init__(config)
 
-    def plan(self, start_conf: JointConf, goal_conf: Mat4, *args) -> JointPath:
+    def plan(self, start_conf: JointConf, goal_conf: JointConf, *args) -> JointPath:
         # Implement the interpolation motion planning algorithm
         n_step = 100
         arm_path = [start_conf + (goal_conf - start_conf) * i / n_step for i in range(n_step)] + [goal_conf]
@@ -253,8 +253,10 @@ class Planner:
             return None
         return CommandSequence([
             GripperMotionCommand('open'),
-            JointPathCommand(path_to_pregrasp), CartesianGoalCommand(grasp_param.grasp_pose),
-            GripperMotionCommand('close'), CartesianGoalCommand(grasp_param.pregrasp_pose)
+            JointPathCommand(path_to_pregrasp),
+            CartesianGoalCommand(grasp_param.grasp_pose),
+            GripperMotionCommand('close'),
+            CartesianGoalCommand(grasp_param.pregrasp_pose)
         ])
 
     def plan_picking(self, start_qpos: JointConf, pcd_cameraframe, pcd_worldframe, rgb_im, target_object_mask) -> CommandSequence:
@@ -287,8 +289,10 @@ class Planner:
         if path_to_pregrasp is None:
             return None
         return CommandSequence([
-            JointPathCommand(path_to_pregrasp), CartesianGoalCommand(grasp_param.grasp_pose),
-            GripperMotionCommand('open'), CartesianGoalCommand(grasp_param.pregrasp_pose)
+            JointPathCommand(path_to_pregrasp),
+            CartesianGoalCommand(grasp_param.grasp_pose),
+            GripperMotionCommand('open'),
+            CartesianGoalCommand(grasp_param.pregrasp_pose)
         ])
 
 

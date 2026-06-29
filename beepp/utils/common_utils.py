@@ -70,11 +70,14 @@ def crop_image(im, mask, margin_pixel=10, return_bbox=False, pad_to_square=True)
     return im[ymin:ymax, xmin:xmax]
 
 
-def plot_images(images):
-    fig, axes = plt.subplots(1, len(images), figsize=(30, 10))
+def plot_images(images, titles=None):
+    fig, axes = plt.subplots(1, len(images), figsize=(30, 10), squeeze=False)
+    axes = axes[0]
     for i, im in enumerate(images):
         axes[i].imshow(im)
         axes[i].axis('off')
+        if titles is not None:
+            axes[i].set_title(titles[i], fontsize=12, wrap=True)
     plt.show()
     plt.close()
 

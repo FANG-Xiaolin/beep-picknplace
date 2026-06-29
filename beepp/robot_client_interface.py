@@ -15,7 +15,7 @@ import zmq
 import zlib
 import pickle
 import numpy as np
-from typing import Optional, Union
+from typing import Optional, Union, override
 
 # Deoxys EE to gripper_camera
 EE2CAM = np.array([
@@ -114,13 +114,22 @@ class FrankaPybulletController(FrankaController):
         self.execute_joint_impedance_path([message['qpos']])
         return message['rgb'], message['depth'], message['intrinsics']
 
-    def execute_joint_impedance_path(self, poses):
+    @override
+    def execute_joint_impedance_path(self, poses, is_capturing: bool = False):
+        del is_capturing
         for pose in poses:
             for joint_i, joint_val in enumerate(pose):
                 self.pb.resetJointState(self.robot, self.movable_joint_ids[joint_i], targetValue=joint_val, targetVelocity=0)
             time.sleep(0.05)
 
-    def execute_cartesian_impedance_path(self, poses, gripper_isclose: Optional[Union[np.ndarray, bool]] = None, speed_factor=3):
+    def execute_cartesian_impedance_path(
+            self,
+            poses,
+            gripper_isclose: Optional[Union[np.ndarray, bool]] = None,
+            speed_factor=3,
+            is_capturing: bool = False,
+            capture_step: int = 1
+    ):
         # TODO flying gripper or diff-ik
         pass
 
@@ -193,6 +202,7 @@ class FrankaRealworldController(FrankaController):
         message = pickle.loads(zlib.decompress(self.socket.recv()))
         return message
 
+    @override
     def execute_joint_impedance_path(
         self, poses, gripper_isclose: Optional[Union[np.ndarray, bool]] = None, speed_factor=3,
         is_capturing: bool = False, capture_step: int = 1
