@@ -15,6 +15,12 @@ classifiers = [
 requires-python = ">=3.10"
 dynamic = ["dependencies"]
 
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [project.urls]
 Source = "https://github.com/FANG-Xiaolin/beep-picknplace"

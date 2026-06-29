@@ -1,0 +1,11 @@
+numpy
+opencv-python
+matplotlib
+pyyaml
+pyzmq
+openai
+torch
+pybullet
+typed-argument-parser
+ssik
+ssik[urdf]
