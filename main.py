@@ -18,7 +18,7 @@ from beepp.robot_client_interface import initialize_robot_interface
 from beepp.execution_manager import initialize_execution_manager
 from beepp.perception import initialize_perception_interface, RGBDObservation
 from beepp.planner import initialize_planning_interface
-from beepp.utils.common_utils import read_yaml, show_image_with_mask
+from beepp.utils.common_utils import read_yaml, show_image_with_mask, visualize_pointcloud_pybullet
 
 def main_pick_place_planned_franka():
     config = BeeppConfig().parse_args()
@@ -43,8 +43,12 @@ def main_pick_place_planned_franka():
             else:
                 target_object_mask = perception_interface.get_object_mask(rgbd_observation, config.object_name,
                                                                           vis=config.vis)
-                if config.vis:
-                    show_image_with_mask(rgbd_observation.rgb_im, target_object_mask)
+            if config.vis:
+                show_image_with_mask(rgbd_observation.rgb_im, target_object_mask)
+                visualize_pointcloud_pybullet(
+                    rgbd_observation.pcd_worldframe[target_object_mask],
+                    rgbd_observation.rgb_im[target_object_mask],
+                )
 
             for _ in range(config.num_trial):
                 current_qpos = robot_interface.get_current_joint_confs()
@@ -85,7 +89,7 @@ class BeeppConfig(tap.Tap):
     vis: bool = False
     run_in_simulation: bool = False
 
-    num_runs: int = 10
+    num_runs: int = 1
     num_trial: int = 4  # number of trials for each run
 
     # Data collection Settings

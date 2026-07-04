@@ -93,3 +93,35 @@ def overlay_mask_simple(rgb_im, mask: np.ndarray, colors=None, mask_alpha=.5):
 def show_image_with_mask(im, mask):
     im_with_mask = overlay_mask_simple(im, mask)
     plot_images([im, im_with_mask])
+
+
+def visualize_pointcloud_pybullet(points, rgb_im=None, max_points=400, point_size=3):
+    """
+    points: (N, 3) array in world frame
+    rgb_im: optional (H, W, 3) uint8 image aligned pixel-for-pixel with `points`
+            (i.e. points.reshape(H, W, 3) is valid) to color the cloud.
+    """
+    import pybullet as pb
+    points = np.asarray(points).reshape(-1, 3)
+
+    if rgb_im is not None:
+        colors = np.asarray(rgb_im).reshape(-1, 3).astype(np.float32) / 255.0
+    else:
+        colors = np.tile(np.array([1.0, 0.0, 0.0]), (points.shape[0], 1))
+
+    # pybullet's debug-point renderer chokes on very large clouds, so subsample
+    n = points.shape[0]
+    if n > max_points:
+        idx = np.random.choice(n, max_points, replace=False)
+        points = points[idx]
+        colors = colors[idx]
+
+    # drop any NaN/inf points (common at depth-sensor dropout pixels)
+    valid = np.isfinite(points).all(axis=1)
+    points, colors = points[valid], colors[valid]
+
+    pb.addUserDebugPoints(
+        pointPositions=points.tolist(),
+        pointColorsRGB=colors.tolist(),
+        pointSize=point_size,
+    )
